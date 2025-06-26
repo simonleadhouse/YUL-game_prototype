@@ -1,12 +1,56 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useState, useEffect } from 'react';
+import WelcomeScreen from '../components/WelcomeScreen';
+import ConfirmationScreen from '../components/ConfirmationScreen';
+import GameSelectionScreen from '../components/GameSelectionScreen';
 
 const Index = () => {
+  const [currentScreen, setCurrentScreen] = useState<'welcome' | 'confirmation' | 'game-selection'>('welcome');
+  const [lastInteraction, setLastInteraction] = useState(Date.now());
+
+  // Idle timeout - reset to welcome screen after 60 seconds of inactivity
+  useEffect(() => {
+    const checkIdleTimeout = () => {
+      const now = Date.now();
+      if (now - lastInteraction > 60000 && currentScreen !== 'welcome') {
+        setCurrentScreen('welcome');
+      }
+    };
+
+    const interval = setInterval(checkIdleTimeout, 1000);
+    return () => clearInterval(interval);
+  }, [lastInteraction, currentScreen]);
+
+  const handleUserInteraction = () => {
+    setLastInteraction(Date.now());
+  };
+
+  const handleTapToPlay = () => {
+    handleUserInteraction();
+    setCurrentScreen('confirmation');
+  };
+
+  const handleConfirm = () => {
+    handleUserInteraction();
+    setCurrentScreen('game-selection');
+  };
+
+  const handleCancel = () => {
+    handleUserInteraction();
+    setCurrentScreen('welcome');
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
+      {currentScreen === 'welcome' && (
+        <WelcomeScreen onTapToPlay={handleTapToPlay} />
+      )}
+      {currentScreen === 'confirmation' && (
+        <ConfirmationScreen onConfirm={handleConfirm} onCancel={handleCancel} />
+      )}
+      {currentScreen === 'game-selection' && (
+        <GameSelectionScreen onUserInteraction={handleUserInteraction} />
+      )}
     </div>
   );
 };
