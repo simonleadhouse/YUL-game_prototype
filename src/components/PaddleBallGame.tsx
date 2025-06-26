@@ -44,6 +44,10 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
     gameObjectsRef.current.rightPaddle.y = canvas.height / 2 - PADDLE_HEIGHT / 2;
 
     // Initialize ball position and velocity
+    resetBall(canvas);
+  };
+
+  const resetBall = (canvas: HTMLCanvasElement) => {
     gameObjectsRef.current.ball.x = canvas.width / 2;
     gameObjectsRef.current.ball.y = canvas.height / 2;
     
@@ -88,12 +92,57 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
   const updateBall = (canvas: HTMLCanvasElement) => {
     const { ball } = gameObjectsRef.current;
     
+    // Update ball position
     ball.x += ball.vx;
     ball.y += ball.vy;
 
     // Ball collision with top and bottom walls
     if (ball.y <= ball.radius || ball.y >= canvas.height - ball.radius) {
       ball.vy = -ball.vy;
+      // Keep ball within bounds
+      ball.y = Math.max(ball.radius, Math.min(canvas.height - ball.radius, ball.y));
+    }
+
+    // Paddle collision detection
+    const { leftPaddle, rightPaddle } = gameObjectsRef.current;
+
+    // Left paddle collision
+    if (ball.x - ball.radius <= leftPaddle.x + leftPaddle.width &&
+        ball.x + ball.radius >= leftPaddle.x &&
+        ball.y >= leftPaddle.y &&
+        ball.y <= leftPaddle.y + leftPaddle.height &&
+        ball.vx < 0) {
+      ball.vx = -ball.vx;
+      // Add some vertical velocity based on where ball hits paddle
+      const hitPosition = (ball.y - (leftPaddle.y + leftPaddle.height / 2)) / (leftPaddle.height / 2);
+      ball.vy += hitPosition * 2;
+      // Keep ball outside paddle
+      ball.x = leftPaddle.x + leftPaddle.width + ball.radius;
+    }
+
+    // Right paddle collision
+    if (ball.x + ball.radius >= rightPaddle.x &&
+        ball.x - ball.radius <= rightPaddle.x + rightPaddle.width &&
+        ball.y >= rightPaddle.y &&
+        ball.y <= rightPaddle.y + rightPaddle.height &&
+        ball.vx > 0) {
+      ball.vx = -ball.vx;
+      // Add some vertical velocity based on where ball hits paddle
+      const hitPosition = (ball.y - (rightPaddle.y + rightPaddle.height / 2)) / (rightPaddle.height / 2);
+      ball.vy += hitPosition * 2;
+      // Keep ball outside paddle
+      ball.x = rightPaddle.x - ball.radius;
+    }
+
+    // Scoring logic
+    if (ball.x + ball.radius < 0) {
+      // Ball passed left paddle, right player scores
+      setScores(prev => ({ ...prev, right: prev.right + 1 }));
+      setTimeout(() => resetBall(canvas), 1000);
+    } else if (ball.x - ball.radius > canvas.width) {
+      // Ball passed right paddle, left player scores
+      setScores(prev => ({ ...prev, left: prev.left + 1 }));
+      setTimeout(() => resetBall(canvas), 1000);
     }
   };
 
