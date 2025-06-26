@@ -3,9 +3,10 @@ import { useState, useEffect } from 'react';
 import WelcomeScreen from '../components/WelcomeScreen';
 import ConfirmationScreen from '../components/ConfirmationScreen';
 import GameSelectionScreen from '../components/GameSelectionScreen';
+import PaddleBallGame from '../components/PaddleBallGame';
 
 const Index = () => {
-  const [currentScreen, setCurrentScreen] = useState<'welcome' | 'confirmation' | 'game-selection'>('welcome');
+  const [currentScreen, setCurrentScreen] = useState<'welcome' | 'confirmation' | 'game-selection' | 'paddle-ball'>('welcome');
   const [lastInteraction, setLastInteraction] = useState(Date.now());
 
   // Idle timeout - reset to welcome screen after 60 seconds of inactivity
@@ -40,6 +41,18 @@ const Index = () => {
     setCurrentScreen('welcome');
   };
 
+  const handleGameSelect = (gameId: string) => {
+    handleUserInteraction();
+    if (gameId === 'paddle-ball') {
+      setCurrentScreen('paddle-ball');
+    }
+  };
+
+  const handleBackToSelection = () => {
+    handleUserInteraction();
+    setCurrentScreen('game-selection');
+  };
+
   return (
     <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
       {currentScreen === 'welcome' && (
@@ -49,7 +62,10 @@ const Index = () => {
         <ConfirmationScreen onConfirm={handleConfirm} onCancel={handleCancel} />
       )}
       {currentScreen === 'game-selection' && (
-        <GameSelectionScreen onUserInteraction={handleUserInteraction} />
+        <GameSelectionScreen onUserInteraction={handleUserInteraction} onGameSelect={handleGameSelect} />
+      )}
+      {currentScreen === 'paddle-ball' && (
+        <PaddleBallGame onBackToSelection={handleBackToSelection} />
       )}
     </div>
   );
