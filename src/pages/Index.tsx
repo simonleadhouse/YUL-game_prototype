@@ -4,9 +4,10 @@ import WelcomeScreen from '../components/WelcomeScreen';
 import ConfirmationScreen from '../components/ConfirmationScreen';
 import GameSelectionScreen from '../components/GameSelectionScreen';
 import PaddleBallGame from '../components/PaddleBallGame';
+import WheelOfFortune from '../components/WheelOfFortune';
 
 const Index = () => {
-  const [currentScreen, setCurrentScreen] = useState<'welcome' | 'confirmation' | 'game-selection' | 'paddle-ball'>('welcome');
+  const [currentScreen, setCurrentScreen] = useState<'welcome' | 'confirmation' | 'game-selection' | 'paddle-ball' | 'wheel-of-fortune'>('welcome');
   const [lastInteraction, setLastInteraction] = useState(Date.now());
 
   // Idle timeout - reset to welcome screen after 60 seconds of inactivity
@@ -53,6 +54,11 @@ const Index = () => {
     setCurrentScreen('game-selection');
   };
 
+  const handleTransitionToWheelOfFortune = () => {
+    handleUserInteraction();
+    setCurrentScreen('wheel-of-fortune');
+  };
+
   return (
     <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
       {currentScreen === 'welcome' && (
@@ -65,7 +71,10 @@ const Index = () => {
         <GameSelectionScreen onUserInteraction={handleUserInteraction} onGameSelect={handleGameSelect} />
       )}
       {currentScreen === 'paddle-ball' && (
-        <PaddleBallGame onBackToSelection={handleBackToSelection} />
+        <PaddleBallGame onBackToSelection={handleBackToSelection} onTransitionToWheelOfFortune={handleTransitionToWheelOfFortune} />
+      )}
+      {currentScreen === 'wheel-of-fortune' && (
+        <WheelOfFortune onBackToSelection={handleBackToSelection} />
       )}
     </div>
   );

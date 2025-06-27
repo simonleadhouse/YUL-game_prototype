@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 
 interface PaddleBallGameProps {
   onBackToSelection: () => void;
+  onTransitionToWheelOfFortune: () => void;
 }
 
-const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
+const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: PaddleBallGameProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameStateRef = useRef({
     isPlaying: false,
@@ -389,7 +390,7 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
       cancelAnimationFrame(gameStateRef.current.animationId);
     }
 
-    // After 3 seconds, transition to the next screen
+    // After 3 seconds, transition to the wheel of fortune
     setTimeout(() => {
       // Reset game state for potential future games
       setScores({ left: 0, right: 0 });
@@ -399,9 +400,8 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
       gameStateRef.current.winner = null;
       gameStateRef.current.isPlaying = false;
       
-      // For now, transition back to game selection
-      // In the future, this would transition to Wheel of Fortune
-      onBackToSelection();
+      // Transition to Wheel of Fortune
+      onTransitionToWheelOfFortune();
     }, 3000);
   };
 
