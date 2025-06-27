@@ -34,9 +34,24 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
     rightTouch: null as { id: number; startY: number; currentY: number } | null
   });
 
+  // Input capability detection
+  const inputCapabilityRef = useRef({
+    isTouchDevice: false,
+    touchActive: false,
+    mouseControlEnabled: false
+  });
+
   const [scores, setScores] = useState({ left: 0, right: 0 });
   const [showWinnerMessage, setShowWinnerMessage] = useState(false);
   const [winnerText, setWinnerText] = useState('');
+
+  // Detect touch capability
+  const detectTouchCapability = () => {
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    inputCapabilityRef.current.isTouchDevice = hasTouch;
+    inputCapabilityRef.current.mouseControlEnabled = !hasTouch;
+    console.log('Touch device detected:', hasTouch);
+  };
 
   const initializeGame = (canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect();
@@ -206,6 +221,7 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
 
   const handleTouchStart = (e: TouchEvent) => {
     e.preventDefault();
+    inputCapabilityRef.current.touchActive = true;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -236,6 +252,7 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
 
   const handleTouchMove = (e: TouchEvent) => {
     e.preventDefault();
+    inputCapabilityRef.current.touchActive = true;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -277,6 +294,52 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
         touchStateRef.current.rightTouch = null;
       }
     }
+
+    // Check if all touches have ended
+    if (!touchStateRef.current.leftTouch && !touchStateRef.current.rightTouch) {
+      // Small delay to allow for quick touch sequences
+      setTimeout(() => {
+        inputCapabilityRef.current.touchActive = false;
+      }, 100);
+    }
+  };
+
+  // Mouse event handlers for testing purposes
+  const handleMouseMove = (e: MouseEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Only use mouse control if touch is not active and mouse control is enabled
+    if (inputCapabilityRef.current.touchActive || !inputCapabilityRef.current.mouseControlEnabled) {
+      return;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Control left paddle with mouse on left half
+    if (x < canvas.width / 2) {
+      gameObjectsRef.current.leftPaddle.y = Math.max(0, 
+        Math.min(canvas.height - PADDLE_HEIGHT, y - PADDLE_HEIGHT / 2));
+    }
+    // Control right paddle with mouse on right half
+    else {
+      gameObjectsRef.current.rightPaddle.y = Math.max(0, 
+        Math.min(canvas.height - PADDLE_HEIGHT, y - PADDLE_HEIGHT / 2));
+    }
+  };
+
+  const handleMouseEnter = () => {
+    // Enable mouse control only if not a touch device and touch is not active
+    if (!inputCapabilityRef.current.isTouchDevice && !inputCapabilityRef.current.touchActive) {
+      inputCapabilityRef.current.mouseControlEnabled = true;
+    }
+  };
+
+  const handleMouseLeave = () => {
+    // Disable mouse control when mouse leaves canvas
+    inputCapabilityRef.current.mouseControlEnabled = false;
   };
 
   const startGame = () => {
@@ -349,6 +412,9 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Detect touch capability on initialization
+    detectTouchCapability();
+
     // Set canvas size to fill the game area
     const resizeCanvas = () => {
       const container = canvas.parentElement;
@@ -372,11 +438,19 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
     canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
     canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 
+    // Add mouse event listeners for testing (conditional)
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseenter', handleMouseEnter);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
+
     return () => {
       window.removeEventListener('resize', resizeCanvas);
       canvas.removeEventListener('touchstart', handleTouchStart);
       canvas.removeEventListener('touchmove', handleTouchMove);
       canvas.removeEventListener('touchend', handleTouchEnd);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseenter', handleMouseEnter);
+      canvas.removeEventListener('mouseleave', handleMouseLeave);
       stopGame();
     };
   }, []);
@@ -440,7 +514,9 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
               <div className="text-2xl md:text-3xl font-bold text-white mb-4">Ready to Play!</div>
               <div className="text-lg md:text-xl text-slate-300 mb-2">Left Player: Use LEFT side of screen</div>
               <div className="text-lg md:text-xl text-slate-300 mb-4">Right Player: Use RIGHT side of screen</div>
-              <div className="text-base md:text-lg text-slate-400 mb-2">Touch and drag to move your paddle</div>
+              <div className="text-base md:text-lg text-slate-400 mb-2">
+                {inputCapabilityRef.current.isTouchDevice ? 'Touch and drag to move your paddle' : 'Move mouse to control paddles'}
+              </div>
               <div className="text-base md:text-lg text-amber-400 font-semibold">First to {WINNING_SCORE} points wins!</div>
             </div>
           </div>
