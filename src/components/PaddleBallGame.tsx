@@ -8,7 +8,9 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameStateRef = useRef({
     isPlaying: false,
-    animationId: 0
+    animationId: 0,
+    gameOver: false,
+    winner: null as 'left' | 'right' | null
   });
 
   // Game constants
@@ -17,6 +19,7 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
   const BALL_RADIUS = 12;
   const PADDLE_SPEED = 8;
   const BALL_SPEED = 6;
+  const WINNING_SCORE = 3;
 
   // Game objects
   const gameObjectsRef = useRef({
@@ -32,6 +35,8 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
   });
 
   const [scores, setScores] = useState({ left: 0, right: 0 });
+  const [showWinnerMessage, setShowWinnerMessage] = useState(false);
+  const [winnerText, setWinnerText] = useState('');
 
   const initializeGame = (canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect();
@@ -90,6 +95,9 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
   };
 
   const updateBall = (canvas: HTMLCanvasElement) => {
+    // Don't update ball if game is over
+    if (gameStateRef.current.gameOver) return;
+
     const { ball } = gameObjectsRef.current;
     
     // Update ball position
@@ -137,11 +145,39 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
     // Scoring logic
     if (ball.x + ball.radius < 0) {
       // Ball passed left paddle, right player scores
-      setScores(prev => ({ ...prev, right: prev.right + 1 }));
+      setScores(prev => {
+        const newScores = { ...prev, right: prev.right + 1 };
+        // Check win condition after score update
+        setTimeout(() => {
+          if (newScores.right >= WINNING_SCORE) {
+            gameStateRef.current.gameOver = true;
+            gameStateRef.current.winner = 'right';
+            gameStateRef.current.isPlaying = false;
+            setWinnerText('PLAYER 2 WINS!');
+            setShowWinnerMessage(true);
+            transitionToWheelOfFortune();
+          }
+        }, 100);
+        return newScores;
+      });
       setTimeout(() => resetBall(canvas), 1000);
     } else if (ball.x - ball.radius > canvas.width) {
       // Ball passed right paddle, left player scores
-      setScores(prev => ({ ...prev, left: prev.left + 1 }));
+      setScores(prev => {
+        const newScores = { ...prev, left: prev.left + 1 };
+        // Check win condition after score update
+        setTimeout(() => {
+          if (newScores.left >= WINNING_SCORE) {
+            gameStateRef.current.gameOver = true;
+            gameStateRef.current.winner = 'left';
+            gameStateRef.current.isPlaying = false;
+            setWinnerText('PLAYER 1 WINS!');
+            setShowWinnerMessage(true);
+            transitionToWheelOfFortune();
+          }
+        }, 100);
+        return newScores;
+      });
       setTimeout(() => resetBall(canvas), 1000);
     }
   };
@@ -156,7 +192,7 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
 
   const gameLoop = () => {
     const canvas = canvasRef.current;
-    if (!canvas || !gameStateRef.current.isPlaying) return;
+    if (!canvas || !gameStateRef.current.isPlaying || gameStateRef.current.gameOver) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -247,16 +283,63 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // Reset game state
     gameStateRef.current.isPlaying = true;
+    gameStateRef.current.gameOver = false;
+    gameStateRef.current.winner = null;
+    setShowWinnerMessage(false);
+    setWinnerText('');
+    
     initializeGame(canvas);
     gameLoop();
   };
 
   const stopGame = () => {
     gameStateRef.current.isPlaying = false;
+    gameStateRef.current.gameOver = false;
     if (gameStateRef.current.animationId) {
       cancelAnimationFrame(gameStateRef.current.animationId);
     }
+  };
+
+  const checkWinCondition = () => {
+    if (scores.left >= WINNING_SCORE) {
+      gameStateRef.current.gameOver = true;
+      gameStateRef.current.winner = 'left';
+      gameStateRef.current.isPlaying = false;
+      setWinnerText('PLAYER 1 WINS!');
+      setShowWinnerMessage(true);
+      transitionToWheelOfFortune();
+    } else if (scores.right >= WINNING_SCORE) {
+      gameStateRef.current.gameOver = true;
+      gameStateRef.current.winner = 'right';
+      gameStateRef.current.isPlaying = false;
+      setWinnerText('PLAYER 2 WINS!');
+      setShowWinnerMessage(true);
+      transitionToWheelOfFortune();
+    }
+  };
+
+  const transitionToWheelOfFortune = () => {
+    // Stop the game loop
+    if (gameStateRef.current.animationId) {
+      cancelAnimationFrame(gameStateRef.current.animationId);
+    }
+
+    // After 3 seconds, transition to the next screen
+    setTimeout(() => {
+      // Reset game state for potential future games
+      setScores({ left: 0, right: 0 });
+      setShowWinnerMessage(false);
+      setWinnerText('');
+      gameStateRef.current.gameOver = false;
+      gameStateRef.current.winner = null;
+      gameStateRef.current.isPlaying = false;
+      
+      // For now, transition back to game selection
+      // In the future, this would transition to Wheel of Fortune
+      onBackToSelection();
+    }, 3000);
   };
 
   useEffect(() => {
@@ -312,6 +395,7 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
         <div className="text-center">
           <div className="text-3xl md:text-4xl font-bold text-white mb-4">LEFT vs RIGHT</div>
           <div className="text-xl md:text-2xl text-slate-300">PADDLE BALL</div>
+          <div className="text-lg text-slate-400 mt-2">First to {WINNING_SCORE} points wins!</div>
         </div>
         
         <div className="text-center">
@@ -329,14 +413,35 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
           className="w-full h-full border-2 border-slate-600/50 rounded-2xl bg-slate-900/50 shadow-2xl touch-none"
         />
         
-        {/* Game Instructions Overlay - Only show when not playing */}
-        {!gameStateRef.current.isPlaying && (
+        {/* Winner Message Overlay */}
+        {showWinnerMessage && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-none z-20">
+            <div className="text-center">
+              <div className="text-6xl md:text-8xl font-bold text-white mb-4 animate-pulse">
+                🏆
+              </div>
+              <div className="text-4xl md:text-6xl font-bold text-white mb-6">
+                {winnerText}
+              </div>
+              <div className="text-2xl md:text-3xl text-slate-300 mb-4">
+                Congratulations!
+              </div>
+              <div className="text-lg md:text-xl text-slate-400">
+                Transitioning to next phase...
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Game Instructions Overlay - Only show when not playing and not game over */}
+        {!gameStateRef.current.isPlaying && !showWinnerMessage && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="bg-black/60 backdrop-blur-sm px-8 py-6 rounded-2xl border border-slate-500/30 text-center">
               <div className="text-2xl md:text-3xl font-bold text-white mb-4">Ready to Play!</div>
               <div className="text-lg md:text-xl text-slate-300 mb-2">Left Player: Use LEFT side of screen</div>
               <div className="text-lg md:text-xl text-slate-300 mb-4">Right Player: Use RIGHT side of screen</div>
-              <div className="text-base md:text-lg text-slate-400">Touch and drag to move your paddle</div>
+              <div className="text-base md:text-lg text-slate-400 mb-2">Touch and drag to move your paddle</div>
+              <div className="text-base md:text-lg text-amber-400 font-semibold">First to {WINNING_SCORE} points wins!</div>
             </div>
           </div>
         )}
@@ -347,12 +452,14 @@ const PaddleBallGame = ({ onBackToSelection }: PaddleBallGameProps) => {
         <button
           onClick={onBackToSelection}
           className="bg-slate-700 hover:bg-slate-600 text-white px-8 py-4 rounded-xl text-xl font-semibold transition-colors border border-slate-600"
+          disabled={showWinnerMessage}
         >
           Back to Games
         </button>
         <button
           onClick={gameStateRef.current.isPlaying ? stopGame : startGame}
-          className="bg-green-600 hover:bg-green-500 text-white px-12 py-4 rounded-xl text-2xl font-bold transition-colors shadow-lg"
+          className="bg-green-600 hover:bg-green-500 text-white px-12 py-4 rounded-xl text-2xl font-bold transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={showWinnerMessage}
         >
           {gameStateRef.current.isPlaying ? 'STOP GAME' : 'START GAME'}
         </button>
