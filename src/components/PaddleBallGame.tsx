@@ -11,7 +11,8 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
     isPlaying: false,
     animationId: 0,
     gameOver: false,
-    winner: null as 'left' | 'right' | null
+    winner: null as 'left' | 'right' | null,
+    ballResetTimer: null as NodeJS.Timeout | null
   });
 
   // Game constants
@@ -46,7 +47,6 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
   const [showWinnerMessage, setShowWinnerMessage] = useState(false);
   const [winnerText, setWinnerText] = useState('');
 
-  // Detect touch capability
   const detectTouchCapability = () => {
     const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     inputCapabilityRef.current.isTouchDevice = hasTouch;
@@ -158,43 +158,55 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
       ball.x = rightPaddle.x - ball.radius;
     }
 
-    // Scoring logic
+    // Scoring logic - fixed to increment by exactly 1
     if (ball.x + ball.radius < 0) {
       // Ball passed left paddle, right player scores
       setScores(prev => {
         const newScores = { ...prev, right: prev.right + 1 };
-        // Check win condition after score update
-        setTimeout(() => {
-          if (newScores.right >= WINNING_SCORE) {
-            gameStateRef.current.gameOver = true;
-            gameStateRef.current.winner = 'right';
-            gameStateRef.current.isPlaying = false;
-            setWinnerText('PLAYER 2 WINS!');
-            setShowWinnerMessage(true);
-            transitionToWheelOfFortune();
+        console.log('Right player scored! New scores:', newScores);
+        
+        // Check win condition
+        if (newScores.right >= WINNING_SCORE) {
+          gameStateRef.current.gameOver = true;
+          gameStateRef.current.winner = 'right';
+          gameStateRef.current.isPlaying = false;
+          setWinnerText('PLAYER 2 WINS!');
+          setShowWinnerMessage(true);
+          transitionToWheelOfFortune();
+        } else {
+          // Reset ball after 1 second if game continues
+          if (gameStateRef.current.ballResetTimer) {
+            clearTimeout(gameStateRef.current.ballResetTimer);
           }
-        }, 100);
+          gameStateRef.current.ballResetTimer = setTimeout(() => resetBall(canvas), 1000);
+        }
+        
         return newScores;
       });
-      setTimeout(() => resetBall(canvas), 1000);
     } else if (ball.x - ball.radius > canvas.width) {
       // Ball passed right paddle, left player scores
       setScores(prev => {
         const newScores = { ...prev, left: prev.left + 1 };
-        // Check win condition after score update
-        setTimeout(() => {
-          if (newScores.left >= WINNING_SCORE) {
-            gameStateRef.current.gameOver = true;
-            gameStateRef.current.winner = 'left';
-            gameStateRef.current.isPlaying = false;
-            setWinnerText('PLAYER 1 WINS!');
-            setShowWinnerMessage(true);
-            transitionToWheelOfFortune();
+        console.log('Left player scored! New scores:', newScores);
+        
+        // Check win condition
+        if (newScores.left >= WINNING_SCORE) {
+          gameStateRef.current.gameOver = true;
+          gameStateRef.current.winner = 'left';
+          gameStateRef.current.isPlaying = false;
+          setWinnerText('PLAYER 1 WINS!');
+          setShowWinnerMessage(true);
+          transitionToWheelOfFortune();
+        } else {
+          // Reset ball after 1 second if game continues
+          if (gameStateRef.current.ballResetTimer) {
+            clearTimeout(gameStateRef.current.ballResetTimer);
           }
-        }, 100);
+          gameStateRef.current.ballResetTimer = setTimeout(() => resetBall(canvas), 1000);
+        }
+        
         return newScores;
       });
-      setTimeout(() => resetBall(canvas), 1000);
     }
   };
 
@@ -354,6 +366,12 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
     setShowWinnerMessage(false);
     setWinnerText('');
     
+    // Clear any existing ball reset timer
+    if (gameStateRef.current.ballResetTimer) {
+      clearTimeout(gameStateRef.current.ballResetTimer);
+      gameStateRef.current.ballResetTimer = null;
+    }
+    
     initializeGame(canvas);
     gameLoop();
   };
@@ -364,23 +382,9 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
     if (gameStateRef.current.animationId) {
       cancelAnimationFrame(gameStateRef.current.animationId);
     }
-  };
-
-  const checkWinCondition = () => {
-    if (scores.left >= WINNING_SCORE) {
-      gameStateRef.current.gameOver = true;
-      gameStateRef.current.winner = 'left';
-      gameStateRef.current.isPlaying = false;
-      setWinnerText('PLAYER 1 WINS!');
-      setShowWinnerMessage(true);
-      transitionToWheelOfFortune();
-    } else if (scores.right >= WINNING_SCORE) {
-      gameStateRef.current.gameOver = true;
-      gameStateRef.current.winner = 'right';
-      gameStateRef.current.isPlaying = false;
-      setWinnerText('PLAYER 2 WINS!');
-      setShowWinnerMessage(true);
-      transitionToWheelOfFortune();
+    if (gameStateRef.current.ballResetTimer) {
+      clearTimeout(gameStateRef.current.ballResetTimer);
+      gameStateRef.current.ballResetTimer = null;
     }
   };
 
@@ -388,6 +392,12 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
     // Stop the game loop
     if (gameStateRef.current.animationId) {
       cancelAnimationFrame(gameStateRef.current.animationId);
+    }
+
+    // Clear any ball reset timer
+    if (gameStateRef.current.ballResetTimer) {
+      clearTimeout(gameStateRef.current.ballResetTimer);
+      gameStateRef.current.ballResetTimer = null;
     }
 
     // After 3 seconds, transition to the wheel of fortune
