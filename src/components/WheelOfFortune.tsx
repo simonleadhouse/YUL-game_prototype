@@ -143,6 +143,11 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
     setIsSpinning(true);
     setWinningPrize(null);
     
+    // Cancel any existing animation
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+    
     // Randomly select target segment
     const targetSegment = Math.floor(Math.random() * WHEEL_SEGMENTS);
     const anglePerSegment = (2 * Math.PI) / WHEEL_SEGMENTS;
@@ -205,6 +210,7 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
         
         setWinningPrize(prize);
         setIsSpinning(false);
+        animationRef.current = undefined;
       }
     };
     
@@ -229,11 +235,18 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
+      // Only cancel animation frame on component unmount, not on re-renders
+    };
+  }, []); // Removed currentRotation from dependencies
+
+  // Separate useEffect for handling component unmount cleanup
+  useEffect(() => {
+    return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [currentRotation]);
+  }, []);
 
   const handleBackToGames = () => {
     if (isSpinning) return;
