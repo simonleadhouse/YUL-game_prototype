@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 
 interface WheelOfFortuneProps {
@@ -140,6 +139,7 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
   const spinWheel = () => {
     if (isSpinning) return;
     
+    console.log('Starting wheel spin...');
     setIsSpinning(true);
     setWinningPrize(null);
     
@@ -147,42 +147,68 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
     const targetSegment = Math.floor(Math.random() * WHEEL_SEGMENTS);
     const anglePerSegment = (2 * Math.PI) / WHEEL_SEGMENTS;
     
-    // Calculate target angle (multiple full rotations + target segment)
+    console.log(`Target segment: ${targetSegment}, Prize: ${PRIZE_LABELS[targetSegment]}`);
+    
+    // Calculate target angle - we want to land in the center of the target segment
+    // The pointer points to the top, so we need to calculate accordingly
+    const targetAngleInSegment = targetSegment * anglePerSegment;
+    const centerOfSegmentOffset = anglePerSegment / 2;
+    const pointerOffset = Math.PI / 2; // Pointer points to top
+    
+    // Add multiple full rotations (3-6 full spins) plus the target angle
     const minSpins = 3;
     const maxSpins = 6;
     const fullRotations = minSpins + Math.random() * (maxSpins - minSpins);
-    const targetAngle = targetSegment * anglePerSegment;
-    const totalRotation = fullRotations * 2 * Math.PI + targetAngle;
+    const baseRotation = fullRotations * 2 * Math.PI;
+    
+    // Calculate final target rotation
+    const finalTargetRotation = baseRotation + (2 * Math.PI - targetAngleInSegment - centerOfSegmentOffset + pointerOffset);
+    
+    console.log(`Full rotations: ${fullRotations}, Final target: ${finalTargetRotation}`);
     
     // Animation parameters
     const duration = 4000; // 4 seconds
-    const startTime = Date.now();
+    const startTime = performance.now();
     const startRotation = currentRotation;
     
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
       
-      // Easing function for deceleration
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-      const rotation = startRotation + totalRotation * easeOut;
+      console.log(`Animation progress: ${(progress * 100).toFixed(1)}%`);
       
-      setCurrentRotation(rotation);
-      renderWheel(rotation);
+      // Easing function for smooth deceleration (ease-out cubic)
+      const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+      
+      // Calculate current rotation
+      const totalRotationNeeded = finalTargetRotation - startRotation;
+      const currentRotationValue = startRotation + (totalRotationNeeded * easeOutCubic);
+      
+      console.log(`Current rotation: ${currentRotationValue}, Target: ${finalTargetRotation}`);
+      
+      setCurrentRotation(currentRotationValue);
+      renderWheel(currentRotationValue);
       
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate);
       } else {
-        // Animation complete
-        const winningSegmentIndex = determineWinningSegment(rotation);
+        // Animation complete - ensure we're exactly at the target
+        setCurrentRotation(finalTargetRotation);
+        renderWheel(finalTargetRotation);
+        
+        // Determine and display the winning prize
+        const winningSegmentIndex = determineWinningSegment(finalTargetRotation);
         const prize = PRIZE_LABELS[winningSegmentIndex];
+        
+        console.log(`Animation complete! Winning segment: ${winningSegmentIndex}, Prize: ${prize}`);
+        console.log(`Final rotation: ${finalTargetRotation}`);
+        
         setWinningPrize(prize);
         setIsSpinning(false);
-        console.log(`Winning prize: ${prize} (Segment ${winningSegmentIndex})`);
       }
     };
     
-    animate();
+    animationRef.current = requestAnimationFrame(animate);
   };
 
   useEffect(() => {
