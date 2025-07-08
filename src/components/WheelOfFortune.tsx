@@ -11,29 +11,24 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
   const [winningPrize, setWinningPrize] = useState<string | null>(null);
   const animationRef = useRef<number>();
 
+  // Customizable Prize Data
+  const PRIZES = [
+    { code: "FRDRN", prize: "Free Drink", color: "#FF6B6B" }, // Red
+    { code: "10OFF", prize: "10% Off Voucher", color: "#4ECDC4" }, // Teal
+    { code: "GFTC1", prize: "Gift Card $10", color: "#45B7D1" }, // Blue
+    { code: "SNKPK", prize: "Snack Pack", color: "#96CEB4" }, // Green
+    { code: "TRVPL", prize: "Travel Pillow", color: "#FFEAA7" }, // Yellow
+    { code: "MAGRD", prize: "Magazine Read", color: "#DDA0DD" }, // Plum
+    { code: "WTBTL", prize: "Water Bottle", color: "#FFA07A" }, // Light Salmon
+    { code: "KEYCH", prize: "Keychain", color: "#98D8C8" }, // Mint
+    { code: "CANDY", prize: "Candy Bar", color: "#F0B27A" }, // Orange-ish
+    { code: "DISC5", prize: "5% Discount", color: "#A9A9A9" }  // Dark Gray
+  ];
+
   // Wheel configuration
-  const WHEEL_SEGMENTS = 8;
-  const SEGMENT_COLORS = [
-    '#FF6B6B', // Red
-    '#4ECDC4', // Teal
-    '#45B7D1', // Blue
-    '#96CEB4', // Green
-    '#FFEAA7', // Yellow
-    '#DDA0DD', // Plum
-    '#FFA07A', // Light Salmon
-    '#98D8C8'  // Mint
-  ];
-  
-  const PRIZE_LABELS = [
-    '10% Discount',
-    'Free Coffee',
-    'Gift Card $25', 
-    'Duty Free Bag',
-    '5% Discount',
-    'Free Chocolate',
-    'Gift Card $50',
-    'Premium Upgrade'
-  ];
+  const WHEEL_SEGMENTS = PRIZES.length;
+  // SEGMENT_COLORS are now part of PRIZES array
+  // PRIZE_LABELS are now part of PRIZES array
 
   const drawWheel = (ctx: CanvasRenderingContext2D, centerX: number, centerY: number, radius: number, rotation: number = 0) => {
     const anglePerSegment = (2 * Math.PI) / WHEEL_SEGMENTS;
@@ -53,25 +48,25 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
       ctx.moveTo(centerX, centerY);
       ctx.arc(centerX, centerY, radius, startAngle, endAngle);
       ctx.closePath();
-      ctx.fillStyle = SEGMENT_COLORS[i];
+      ctx.fillStyle = PRIZES[i].color; // Use color from PRIZES
       ctx.fill();
       ctx.strokeStyle = '#FFFFFF';
       ctx.lineWidth = 3;
       ctx.stroke();
       
-      // Draw segment text
+      // Draw segment text (displaying the 5-char code)
       const textAngle = startAngle + anglePerSegment / 2;
-      const textX = centerX + Math.cos(textAngle) * (radius * 0.7);
-      const textY = centerY + Math.sin(textAngle) * (radius * 0.7);
+      const textX = centerX + Math.cos(textAngle) * (radius * 0.65); // Adjusted radius for text
+      const textY = centerY + Math.sin(textAngle) * (radius * 0.65); // Adjusted radius for text
       
       ctx.save();
       ctx.translate(textX, textY);
       ctx.rotate(textAngle + Math.PI / 2);
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 16px Arial';
+      ctx.fillStyle = '#000000'; // Black text for better contrast on light colors
+      ctx.font = 'bold 18px Arial'; // Slightly larger font
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(PRIZE_LABELS[i], 0, 0);
+      ctx.fillText(PRIZES[i].code, 0, 0); // Display prize code
       ctx.restore();
     }
     
@@ -152,7 +147,7 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
     const targetSegment = Math.floor(Math.random() * WHEEL_SEGMENTS);
     const anglePerSegment = (2 * Math.PI) / WHEEL_SEGMENTS;
     
-    console.log(`Target segment: ${targetSegment}, Prize: ${PRIZE_LABELS[targetSegment]}`);
+    console.log(`Target segment: ${targetSegment}, Prize Code: ${PRIZES[targetSegment].code}, Prize: ${PRIZES[targetSegment].prize}`);
     
     // Calculate target angle - we want to land in the center of the target segment
     // The pointer points to the top, so we need to calculate accordingly
@@ -203,12 +198,12 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
         
         // Determine and display the winning prize
         const winningSegmentIndex = determineWinningSegment(finalTargetRotation);
-        const prize = PRIZE_LABELS[winningSegmentIndex];
+        const winningPrizeData = PRIZES[winningSegmentIndex];
         
-        console.log(`Animation complete! Winning segment: ${winningSegmentIndex}, Prize: ${prize}`);
+        console.log(`Animation complete! Winning segment: ${winningSegmentIndex}, Prize Code: ${winningPrizeData.code}, Prize: ${winningPrizeData.prize}`);
         console.log(`Final rotation: ${finalTargetRotation}`);
         
-        setWinningPrize(prize);
+        setWinningPrize(`Code: ${winningPrizeData.code} - ${winningPrizeData.prize}`); // Store combined string for display
         setIsSpinning(false);
         animationRef.current = undefined;
       }
@@ -260,7 +255,13 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
   };
 
   return (
-    <div className="h-full w-full flex flex-col bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 relative overflow-hidden">
+    <div
+      className="h-full w-full flex flex-col relative overflow-hidden bg-cover bg-center"
+      style={{ backgroundImage: "url('/assets/wheel-background.png')" }}
+    >
+      {/* Fallback background color if image fails to load or for transparency in image */}
+      <div className="absolute inset-0 bg-indigo-900 opacity-75 -z-10"></div>
+
       {/* Header */}
       <div className="flex justify-center items-center p-8 z-10">
         <div className="text-center">
@@ -287,8 +288,13 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
         <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-20">
           <div className="bg-gradient-to-r from-yellow-400 to-orange-500 p-8 rounded-2xl shadow-2xl text-center border-4 border-white max-w-md mx-4">
             <div className="text-4xl mb-4">🎉</div>
-            <div className="text-2xl font-bold text-white mb-2">Congratulations!</div>
-            <div className="text-3xl font-bold text-white mb-6">{winningPrize}</div>
+            <div className="text-2xl font-bold text-white mb-1">Congratulations! You've Won:</div>
+            <div className="text-xl font-semibold text-slate-800 bg-white/80 px-4 py-2 rounded-md mb-2">
+              Code: <span className="font-bold text-2xl">{winningPrize?.split(" - ")[0]?.replace("Code: ", "")}</span>
+            </div>
+            <div className="text-2xl font-bold text-white mb-6">
+              {winningPrize?.split(" - ")[1]}
+            </div>
             <div className="space-y-4">
               <button
                 onClick={handleNewSpin}

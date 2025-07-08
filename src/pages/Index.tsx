@@ -62,7 +62,14 @@ const Index = () => {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
+    <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 relative">
+      {/* Logo Placeholder - Top Left */}
+      <img
+        src="/assets/logo.png"
+        alt="Company Logo"
+        className="absolute top-4 left-4 w-24 h-auto z-50" // Adjust w-24 (width) as needed
+        onError={(e) => { e.currentTarget.style.display = 'none'; console.warn("Logo not found at /assets/logo.png. Please place your logo there.") }}
+      />
       {currentScreen === 'welcome' && (
         <WelcomeScreen onTapToPlay={handleTapToPlay} />
       )}

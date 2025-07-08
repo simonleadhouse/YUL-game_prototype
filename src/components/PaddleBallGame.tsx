@@ -466,7 +466,13 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
   }, []);
 
   return (
-    <div className="h-full w-full flex flex-col bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 relative overflow-hidden">
+    <div
+      className="h-full w-full flex flex-col relative overflow-hidden bg-cover bg-center"
+      style={{ backgroundImage: "url('/assets/game-background.png')" }}
+    >
+      {/* Fallback background color if image fails to load or for transparency in image */}
+      <div className="absolute inset-0 bg-slate-900 opacity-75 -z-10"></div>
+
       {/* Score Display */}
       <div className="flex justify-between items-center p-8 z-10">
         <div className="text-center">
