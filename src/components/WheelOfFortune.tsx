@@ -7,30 +7,28 @@ interface WheelOfFortuneProps {
 const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isSpinning, setIsSpinning] = useState(false);
-    const [currentRotation, setCurrentRotation] = useState(0); // This state is for React to track and re-render if needed
+    const [currentRotation, setCurrentRotation] = useState(0);
     const [winningPrize, setWinningPrize] = useState<string | null>(null);
-    const animationRef = useRef<number>(); // Holds the requestAnimationFrame ID
-    const wheelSpinStartTime = useRef<number>(); // Holds the start time of the spin
+    const animationRef = useRef<number>();
 
-    // Use a ref to store the actual rotation value during animation
-    // This allows renderWheel to get the latest rotation without causing
-    // a React re-render on every animation frame.
-    const animationRotationRef = useRef(0);
-
-    // Wheel configuration
-    const WHEEL_SEGMENTS = 8;
-    const SEGMENT_COLORS = [
-        "#FF6B6B", // Red
-        "#4ECDC4", // Teal
-        "#45B7D1", // Blue
-        "#96CEB4", // Green
-        "#FFEAA7", // Yellow
-        "#DDA0DD", // Plum
-        "#FFA07A", // Light Salmon
-        "#98D8C8", // Mint
+    // Customizable Prize Data
+    const PRIZES = [
+        { code: "FRDRN", prize: "Free Drink", color: "#FF6B6B" }, // Red
+        { code: "10OFF", prize: "10% Off Voucher", color: "#4ECDC4" }, // Teal
+        { code: "GFTC1", prize: "Gift Card $10", color: "#45B7D1" }, // Blue
+        { code: "SNKPK", prize: "Snack Pack", color: "#96CEB4" }, // Green
+        { code: "TRVPL", prize: "Travel Pillow", color: "#FFEAA7" }, // Yellow
+        { code: "MAGRD", prize: "Magazine Read", color: "#DDA0DD" }, // Plum
+        { code: "WTBTL", prize: "Water Bottle", color: "#FFA07A" }, // Light Salmon
+        { code: "KEYCH", prize: "Keychain", color: "#98D8C8" }, // Mint
+        { code: "CANDY", prize: "Candy Bar", color: "#F0B27A" }, // Orange-ish
+        { code: "DISC5", prize: "5% Discount", color: "#A9A9A9" }, // Dark Gray
     ];
 
-    const PRIZE_LABELS = ["10% Discount", "Free Coffee", "Gift Card $25", "Duty Free Bag", "5% Discount", "Free Chocolate", "Gift Card $50", "Premium Upgrade"];
+    // Wheel configuration
+    const WHEEL_SEGMENTS = PRIZES.length;
+    // SEGMENT_COLORS are now part of PRIZES array
+    // PRIZE_LABELS are now part of PRIZES array
 
     const drawWheel = (ctx: CanvasRenderingContext2D, centerX: number, centerY: number, radius: number, rotation: number = 0) => {
         const anglePerSegment = (2 * Math.PI) / WHEEL_SEGMENTS;
@@ -50,25 +48,25 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
             ctx.moveTo(centerX, centerY);
             ctx.arc(centerX, centerY, radius, startAngle, endAngle);
             ctx.closePath();
-            ctx.fillStyle = SEGMENT_COLORS[i];
+            ctx.fillStyle = PRIZES[i].color; // Use color from PRIZES
             ctx.fill();
             ctx.strokeStyle = "#FFFFFF";
             ctx.lineWidth = 3;
             ctx.stroke();
 
-            // Draw segment text
+            // Draw segment text (displaying the 5-char code)
             const textAngle = startAngle + anglePerSegment / 2;
-            const textX = centerX + Math.cos(textAngle) * (radius * 0.7);
-            const textY = centerY + Math.sin(textAngle) * (radius * 0.7);
+            const textX = centerX + Math.cos(textAngle) * (radius * 0.65); // Adjusted radius for text
+            const textY = centerY + Math.sin(textAngle) * (radius * 0.65); // Adjusted radius for text
 
             ctx.save();
             ctx.translate(textX, textY);
             ctx.rotate(textAngle + Math.PI / 2);
-            ctx.fillStyle = "#FFFFFF";
-            ctx.font = "bold 16px Arial";
+            ctx.fillStyle = "#000000"; // Black text for better contrast on light colors
+            ctx.font = "bold 14px Arial"; // Reduced font size to prevent overlap
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText(PRIZE_LABELS[i], 0, 0);
+            ctx.fillText(PRIZES[i].code, 0, 0); // Display prize code
             ctx.restore();
         }
 
@@ -101,9 +99,7 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
         ctx.stroke();
     };
 
-    // This function can now get the rotation from the ref or a passed value
-    const renderWheel = (rotation: number = animationRotationRef.current) => {
-        // Default to ref value
+    const renderWheel = (rotation: number = 0) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
@@ -138,61 +134,84 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
     const spinWheel = () => {
         if (isSpinning) return;
 
+        console.log("Starting wheel spin...");
         setIsSpinning(true);
         setWinningPrize(null);
+
+        // Cancel any existing animation
+        if (animationRef.current) {
+            cancelAnimationFrame(animationRef.current);
+        }
 
         // Randomly select target segment
         const targetSegment = Math.floor(Math.random() * WHEEL_SEGMENTS);
         const anglePerSegment = (2 * Math.PI) / WHEEL_SEGMENTS;
 
-        // Calculate target angle (multiple full rotations + target segment)
+        console.log(`Target segment: ${targetSegment}, Prize Code: ${PRIZES[targetSegment].code}, Prize: ${PRIZES[targetSegment].prize}`);
+
+        // Calculate target angle - we want to land in the center of the target segment
+        // The pointer points to the top, so we need to calculate accordingly
+        const targetAngleInSegment = targetSegment * anglePerSegment;
+        const centerOfSegmentOffset = anglePerSegment / 2;
+        const pointerOffset = Math.PI / 2; // Pointer points to top
+
+        // Add multiple full rotations (3-6 full spins) plus the target angle
         const minSpins = 3;
         const maxSpins = 6;
         const fullRotations = minSpins + Math.random() * (maxSpins - minSpins);
-        const targetAngle = targetSegment * anglePerSegment;
-        const totalRotation = fullRotations * 2 * Math.PI + targetAngle;
+        const baseRotation = fullRotations * 2 * Math.PI;
+
+        // Calculate final target rotation
+        const finalTargetRotation = baseRotation + (2 * Math.PI - targetAngleInSegment - centerOfSegmentOffset + pointerOffset);
+
+        console.log(`Full rotations: ${fullRotations}, Final target: ${finalTargetRotation}`);
 
         // Animation parameters
         const duration = 4000; // 4 seconds
-        const startTime = Date.now();
-        // Start from the current actual rotation, not currentRotation state
-        const startRotation = animationRotationRef.current;
+        const startTime = performance.now();
+        const startRotation = currentRotation;
 
-        wheelSpinStartTime.current = startTime;
-
-        const animate = () => {
-            const elapsed = Date.now() - wheelSpinStartTime.current;
-
+        const animate = (currentTime: number) => {
+            const elapsed = currentTime - startTime;
             const progress = Math.min(elapsed / duration, 1);
 
-            // Easing function for deceleration
-            const easeOut = 1 - Math.pow(1 - progress, 3);
-            const rotation = startRotation + totalRotation * easeOut;
+            console.log(`Animation progress: ${(progress * 100).toFixed(1)}%`);
 
-            // Update the ref directly for animation, avoid state updates in the loop
-            animationRotationRef.current = rotation;
-            renderWheel(rotation); // Pass the rotation directly to renderWheel
+            // Easing function for smooth deceleration (ease-out cubic)
+            const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+
+            // Calculate current rotation
+            const totalRotationNeeded = finalTargetRotation - startRotation;
+            const currentRotationValue = startRotation + totalRotationNeeded * easeOutCubic;
+
+            console.log(`Current rotation: ${currentRotationValue}, Target: ${finalTargetRotation}`);
+
+            setCurrentRotation(currentRotationValue);
+            renderWheel(currentRotationValue);
 
             if (progress < 1) {
                 animationRef.current = requestAnimationFrame(animate);
             } else {
-                // Animation complete
-                // Update `currentRotation` state only once at the end
-                setCurrentRotation(rotation);
-                const winningSegmentIndex = determineWinningSegment(rotation);
-                const prize = PRIZE_LABELS[winningSegmentIndex];
-                setWinningPrize(prize);
+                // Animation complete - ensure we're exactly at the target
+                setCurrentRotation(finalTargetRotation);
+                renderWheel(finalTargetRotation);
+
+                // Determine and display the winning prize
+                const winningSegmentIndex = determineWinningSegment(finalTargetRotation);
+                const winningPrizeData = PRIZES[winningSegmentIndex];
+
+                console.log(`Animation complete! Winning segment: ${winningSegmentIndex}, Prize Code: ${winningPrizeData.code}, Prize: ${winningPrizeData.prize}`);
+                console.log(`Final rotation: ${finalTargetRotation}`);
+
+                setWinningPrize(`Code: ${winningPrizeData.code} - ${winningPrizeData.prize}`); // Store combined string for display
                 setIsSpinning(false);
-                // console.log(`Winning prize: ${prize} (Segment ${winningSegmentIndex})`);
+                animationRef.current = undefined;
             }
         };
 
-        animate();
+        animationRef.current = requestAnimationFrame(animate);
     };
 
-    // useEffect for canvas setup and resizing
-    // This useEffect should only run once on mount, and then on window resize events.
-    // It should NOT depend on `currentRotation` as that causes re-renders during animation.
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -202,34 +221,27 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
             if (container) {
                 canvas.width = container.clientWidth;
                 canvas.height = container.clientHeight;
-                // When resizing, re-render the wheel with its *current* rotation from the ref
-                renderWheel(animationRotationRef.current);
+                renderWheel(currentRotation);
             }
         };
 
-        // Initial resize
         resizeCanvas();
-        // Add event listener for window resize
         window.addEventListener("resize", resizeCanvas);
 
-        // Cleanup function
         return () => {
             window.removeEventListener("resize", resizeCanvas);
-            // Always cancel any ongoing animation frame when component unmounts
-            // or if the effect re-runs (though ideally this effect runs only once for setup)
+            // Only cancel animation frame on component unmount, not on re-renders
+        };
+    }, []); // Removed currentRotation from dependencies
+
+    // Separate useEffect for handling component unmount cleanup
+    useEffect(() => {
+        return () => {
             if (animationRef.current) {
                 cancelAnimationFrame(animationRef.current);
             }
         };
-    }, []); // Empty dependency array means this runs once on mount and cleans up on unmount
-
-    // A separate useEffect to draw the initial wheel or when currentRotation changes (e.g., reset)
-    useEffect(() => {
-        // This will ensure the initial render and re-render on reset (handleNewSpin)
-        renderWheel(currentRotation);
-        // Also update the ref with the state's rotation when it changes via state
-        animationRotationRef.current = currentRotation;
-    }, [currentRotation]); // This dependency is fine here
+    }, []);
 
     const handleBackToGames = () => {
         if (isSpinning) return;
@@ -238,12 +250,15 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
 
     const handleNewSpin = () => {
         setWinningPrize(null);
-        setCurrentRotation(0); // This will trigger the second useEffect to re-render the wheel
-        // animationRef.current = 0; // No need to reset animationRef directly here
+        setCurrentRotation(0);
+        renderWheel(0);
     };
 
     return (
-        <div className="h-full w-full flex flex-col bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 relative overflow-hidden">
+        <div className="h-full w-full flex flex-col relative overflow-hidden bg-cover bg-center" style={{ backgroundImage: "url('/assets/wheel-background.png')" }}>
+            {/* Fallback background color if image fails to load or for transparency in image */}
+            <div className="absolute inset-0 bg-indigo-900 opacity-75 -z-10"></div>
+
             {/* Header */}
             <div className="flex justify-center items-center p-8 z-10">
                 <div className="text-center">
@@ -265,9 +280,12 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
                 <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-20">
                     <div className="bg-gradient-to-r from-yellow-400 to-orange-500 p-8 rounded-2xl shadow-2xl text-center border-4 border-white max-w-md mx-4">
                         <div className="text-4xl mb-4">🎉</div>
-                        <div className="text-2xl font-bold text-white mb-2">Congratulations!</div>
-                        <div className="text-3xl font-bold text-white mb-6">{winningPrize}</div>
-                        <div className="space-y-4">
+                        <div className="text-2xl font-bold text-white mb-1">Congratulations! You've Won:</div>
+                        <div className="text-xl font-semibold text-slate-800 bg-white/80 px-4 py-2 rounded-md mb-2">
+                            Code: <span className="font-bold text-2xl">{winningPrize?.split(" - ")[0]?.replace("Code: ", "")}</span>
+                        </div>
+                        <div className="text-2xl font-bold text-white mb-6">{winningPrize?.split(" - ")[1]}</div>
+                        {/* <div className="space-y-4">
                             <button
                                 onClick={handleNewSpin}
                                 className="w-full bg-white text-orange-600 px-6 py-3 rounded-xl text-xl font-semibold hover:bg-gray-100 transition-colors"
@@ -280,20 +298,20 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
                             >
                                 Back to Games
                             </button>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             )}
 
             {/* Control Buttons */}
             <div className="p-8 flex justify-center space-x-8">
-                <button
+                {/* <button
                     onClick={handleBackToGames}
                     className="bg-slate-700 hover:bg-slate-600 text-white px-8 py-4 rounded-xl text-xl font-semibold transition-colors border border-slate-600 disabled:opacity-50"
                     disabled={isSpinning}
                 >
                     Back to Games
-                </button>
+                </button> */}
                 <button
                     onClick={spinWheel}
                     className={`px-16 py-6 rounded-xl text-3xl font-bold transition-all shadow-lg transform ${
@@ -306,6 +324,16 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
                     {isSpinning ? "SPINNING..." : "🎰 SPIN THE WHEEL! 🎰"}
                 </button>
             </div>
+
+            {/* Instructions */}
+            {/* <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
+        <div className="bg-black/40 backdrop-blur-sm px-6 py-3 rounded-lg border border-white/20">
+          <div className="text-white text-lg font-semibold">
+            {isSpinning ? 'The wheel is spinning!' : 'Click the SPIN button to try your luck!'}
+          </div>
+          <div className="text-slate-300 text-sm">8 amazing prizes waiting for you</div>
+        </div>
+      </div> */}
         </div>
     );
 };
