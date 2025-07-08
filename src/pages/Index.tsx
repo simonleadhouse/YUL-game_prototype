@@ -2,12 +2,12 @@
 import { useState, useEffect } from 'react';
 import WelcomeScreen from '../components/WelcomeScreen';
 import ConfirmationScreen from '../components/ConfirmationScreen';
-import GameSelectionScreen from '../components/GameSelectionScreen';
+// import GameSelectionScreen from '../components/GameSelectionScreen'; // Removed
 import PaddleBallGame from '../components/PaddleBallGame';
 import WheelOfFortune from '../components/WheelOfFortune';
 
 const Index = () => {
-  const [currentScreen, setCurrentScreen] = useState<'welcome' | 'confirmation' | 'game-selection' | 'paddle-ball' | 'wheel-of-fortune'>('welcome');
+  const [currentScreen, setCurrentScreen] = useState<'welcome' | 'confirmation' /* | 'game-selection' */ | 'paddle-ball' | 'wheel-of-fortune'>('welcome');
   const [lastInteraction, setLastInteraction] = useState(Date.now());
 
   // Idle timeout - reset to welcome screen after 60 seconds of inactivity
@@ -34,7 +34,8 @@ const Index = () => {
 
   const handleConfirm = () => {
     handleUserInteraction();
-    setCurrentScreen('game-selection');
+    // setCurrentScreen('game-selection'); // Skip game selection
+    setCurrentScreen('paddle-ball'); // Go directly to paddle-ball
   };
 
   const handleCancel = () => {
@@ -42,16 +43,17 @@ const Index = () => {
     setCurrentScreen('welcome');
   };
 
-  const handleGameSelect = (gameId: string) => {
-    handleUserInteraction();
-    if (gameId === 'paddle-ball') {
-      setCurrentScreen('paddle-ball');
-    }
-  };
+  // const handleGameSelect = (gameId: string) => { // No longer needed
+  //   handleUserInteraction();
+  //   if (gameId === 'paddle-ball') {
+  //     setCurrentScreen('paddle-ball');
+  //   }
+  // };
 
   const handleBackToSelection = () => {
     handleUserInteraction();
-    setCurrentScreen('game-selection');
+    // setCurrentScreen('game-selection'); // Should go back to welcome or a new main menu if implemented
+    setCurrentScreen('welcome'); // For now, go back to welcome
   };
 
   const handleTransitionToWheelOfFortune = () => {
@@ -67,9 +69,9 @@ const Index = () => {
       {currentScreen === 'confirmation' && (
         <ConfirmationScreen onConfirm={handleConfirm} onCancel={handleCancel} />
       )}
-      {currentScreen === 'game-selection' && (
+      {/* {currentScreen === 'game-selection' && ( // Removed
         <GameSelectionScreen onUserInteraction={handleUserInteraction} onGameSelect={handleGameSelect} />
-      )}
+      )} */}
       {currentScreen === 'paddle-ball' && (
         <PaddleBallGame onBackToSelection={handleBackToSelection} onTransitionToWheelOfFortune={handleTransitionToWheelOfFortune} />
       )}
