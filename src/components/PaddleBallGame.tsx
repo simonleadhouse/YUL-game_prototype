@@ -569,6 +569,6 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
       </div>
     </div>
   );
-};
+}; // Ensuring this final brace for the component is present.
 
 export default PaddleBallGame;
