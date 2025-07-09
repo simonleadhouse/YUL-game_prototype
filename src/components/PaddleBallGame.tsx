@@ -213,8 +213,8 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
 
         return newScores;
       });
-    }
-  };
+    } // This closing brace for if (!gameStateRef.current.ballOutOfPlay)
+  } // This closing brace for the outer if (!gameStateRef.current.ballOutOfPlay) was removed.
 
   const updatePaddles = (canvas: HTMLCanvasElement) => {
     const { leftPaddle, rightPaddle } = gameObjectsRef.current;
