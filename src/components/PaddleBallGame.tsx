@@ -13,7 +13,7 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
         gameOver: false,
         winner: null as "left" | "right" | null,
         ballResetTimer: null as NodeJS.Timeout | null,
-        isScoring: false, // Add this new property
+        ballOutOfPlay: false, // New flag to prevent multiple scores per event
     });
 
     // Game constants
@@ -78,6 +78,7 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
         const direction = Math.random() > 0.5 ? 1 : -1;
         gameObjectsRef.current.ball.vx = BALL_SPEED * direction;
         gameObjectsRef.current.ball.vy = (Math.random() - 0.5) * BALL_SPEED;
+        gameStateRef.current.ballOutOfPlay = false; // Allow scoring again
     };
 
     const drawGame = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
@@ -164,66 +165,65 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
             ball.x = rightPaddle.x - ball.radius;
         }
 
-        if (gameStateRef.current.isScoring) return; // Add this line
 
-        // Scoring logic - fixed to increment by exactly 1
-        if (ball.x + ball.radius < 0) {
-            gameStateRef.current.isScoring = true; // Set flag immediately
-            // Ball passed left paddle, right player scores
-            setScores(prev => {
-                const newScores = { ...prev, right: prev.right + 1 };
-                console.log("Right player scored! New scores:", newScores);
+        // Scoring logic
+        if (!gameStateRef.current.ballOutOfPlay) {
+            // Check if ball is not already marked as out of play
+            if (ball.x + ball.radius < 0) {
+                // Ball passed left paddle, right player scores
+                gameStateRef.current.ballOutOfPlay = true; // Mark ball as out of play to prevent multiple scores
+                setScores(prev => {
+                    const newScores = { ...prev, right: prev.right + 1 };
+                    console.log("Right player scored! New scores:", newScores);
 
-                // Check win condition
-                if (newScores.right >= WINNING_SCORE) {
-                    gameStateRef.current.gameOver = true;
-                    gameStateRef.current.winner = "right";
-                    gameStateRef.current.isPlaying = false;
-                    setWinnerText("PLAYER 2 WINS!");
-                    setShowWinnerMessage(true);
-                    transitionToWheelOfFortune();
-                } else {
-                    // Reset ball after 1 second if game continues
-                    if (gameStateRef.current.ballResetTimer) {
-                        clearTimeout(gameStateRef.current.ballResetTimer);
+                    // Check win condition
+                    if (newScores.right >= WINNING_SCORE) {
+                        gameStateRef.current.gameOver = true;
+                        gameStateRef.current.winner = "right";
+                        gameStateRef.current.isPlaying = false;
+                        setWinnerText("PLAYER 2 WINS!");
+                        setShowWinnerMessage(true);
+                        transitionToWheelOfFortune();
+                    } else {
+                        // Reset ball after 1 second if game continues
+                        if (gameStateRef.current.ballResetTimer) {
+                            clearTimeout(gameStateRef.current.ballResetTimer);
+                        }
+                        gameStateRef.current.ballResetTimer = setTimeout(() => resetBall(canvas), 1000);
+
                     }
-                    gameStateRef.current.ballResetTimer = setTimeout(() => {
-                        resetBall(canvas);
-                        gameStateRef.current.isScoring = false; // Reset flag after ball is reset
-                    }, 1000);
-                }
 
-                return newScores;
-            });
-        } else if (ball.x - ball.radius > canvas.width) {
-            gameStateRef.current.isScoring = true; // Set flag immediately
-            // Ball passed right paddle, left player scores
-            setScores(prev => {
-                const newScores = { ...prev, left: prev.left + 1 };
-                console.log("Left player scored! New scores:", newScores);
 
-                // Check win condition
-                if (newScores.left >= WINNING_SCORE) {
-                    gameStateRef.current.gameOver = true;
-                    gameStateRef.current.winner = "left";
-                    gameStateRef.current.isPlaying = false;
-                    setWinnerText("PLAYER 1 WINS!");
-                    setShowWinnerMessage(true);
-                    transitionToWheelOfFortune();
-                } else {
-                    // Reset ball after 1 second if game continues
-                    if (gameStateRef.current.ballResetTimer) {
-                        clearTimeout(gameStateRef.current.ballResetTimer);
+                    return newScores;
+                });
+            } else if (ball.x - ball.radius > canvas.width) {
+                // Ball passed right paddle, left player scores
+                gameStateRef.current.ballOutOfPlay = true; // Mark ball as out of play to prevent multiple scores
+                setScores(prev => {
+                    const newScores = { ...prev, left: prev.left + 1 };
+                    console.log("Left player scored! New scores:", newScores);
+
+                    // Check win condition
+                    if (newScores.left >= WINNING_SCORE) {
+                        gameStateRef.current.gameOver = true;
+                        gameStateRef.current.winner = "left";
+                        gameStateRef.current.isPlaying = false;
+                        setWinnerText("PLAYER 1 WINS!");
+                        setShowWinnerMessage(true);
+                        transitionToWheelOfFortune();
+                    } else {
+                        // Reset ball after 1 second if game continues
+                        if (gameStateRef.current.ballResetTimer) {
+                            clearTimeout(gameStateRef.current.ballResetTimer);
+                        }
+                        gameStateRef.current.ballResetTimer = setTimeout(() => resetBall(canvas), 1000);
+
                     }
-                    gameStateRef.current.ballResetTimer = setTimeout(() => {
-                        resetBall(canvas);
-                        gameStateRef.current.isScoring = false; // Reset flag after ball is reset
-                    }, 1000);
-                }
 
-                return newScores;
-            });
-        }
+                    return newScores;
+                });
+            } // This closing brace for if (!gameStateRef.current.ballOutOfPlay)
+        } // This is the correct closing brace for the updateBall function. The extra one after this was removed.
     };
 
     const updatePaddles = (canvas: HTMLCanvasElement) => {
@@ -293,13 +293,19 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
 
             if (touchStateRef.current.leftTouch && touch.identifier === touchStateRef.current.leftTouch.id) {
                 const deltaY = y - touchStateRef.current.leftTouch.startY;
-                gameObjectsRef.current.leftPaddle.y = Math.max(0, Math.min(canvas.height - PADDLE_HEIGHT, canvas.height / 2 - PADDLE_HEIGHT / 2 + deltaY));
+                gameObjectsRef.current.leftPaddle.y = Math.max(
+                    0,
+                    Math.min(canvas.height - PADDLE_HEIGHT, canvas.height / 2 - PADDLE_HEIGHT / 2 + deltaY)
+                );
                 touchStateRef.current.leftTouch.currentY = y;
             }
 
             if (touchStateRef.current.rightTouch && touch.identifier === touchStateRef.current.rightTouch.id) {
                 const deltaY = y - touchStateRef.current.rightTouch.startY;
-                gameObjectsRef.current.rightPaddle.y = Math.max(0, Math.min(canvas.height - PADDLE_HEIGHT, canvas.height / 2 - PADDLE_HEIGHT / 2 + deltaY));
+                gameObjectsRef.current.rightPaddle.y = Math.max(
+                    0,
+                    Math.min(canvas.height - PADDLE_HEIGHT, canvas.height / 2 - PADDLE_HEIGHT / 2 + deltaY)
+                );
                 touchStateRef.current.rightTouch.currentY = y;
             }
         }
@@ -374,6 +380,7 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
         setShowInstructions(false); // Hide instructions modal
         gameStateRef.current.gameOver = false;
         gameStateRef.current.winner = null;
+        gameStateRef.current.ballOutOfPlay = false; // Reset flag
         setShowWinnerMessage(false);
         setWinnerText("");
 
@@ -481,7 +488,12 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
     }, []);
 
     return (
-        <div className="h-full w-full flex flex-col relative overflow-hidden bg-cover bg-center" style={{ backgroundImage: "url('/assets/game-background.png')" }}>
+
+        <div
+            className="h-full w-full flex flex-col relative overflow-hidden bg-cover bg-center"
+            style={{ backgroundImage: "url('/assets/game-background.png')" }}
+        >
+
             {/* Fallback background color if image fails to load or for transparency in image */}
             <div className="absolute inset-0 bg-slate-900 opacity-75 -z-10"></div>
 
@@ -489,7 +501,9 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
             <div className="flex justify-between items-center p-8 z-10">
                 <div className="text-center">
                     <div className="text-2xl md:text-3xl font-bold text-blue-300 mb-2">PLAYER 1</div>
-                    <div className="text-6xl md:text-7xl font-bold text-white bg-blue-600/20 px-6 py-3 rounded-2xl border border-blue-400/30">{scores.left}</div>
+                    <div className="text-6xl md:text-7xl font-bold text-white bg-blue-600/20 px-6 py-3 rounded-2xl border border-blue-400/30">
+                        {scores.left}
+                    </div>
                 </div>
 
                 <div className="text-center">
@@ -500,7 +514,9 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
 
                 <div className="text-center">
                     <div className="text-2xl md:text-3xl font-bold text-red-300 mb-2">PLAYER 2</div>
-                    <div className="text-6xl md:text-7xl font-bold text-white bg-red-600/20 px-6 py-3 rounded-2xl border border-red-400/30">{scores.right}</div>
+                    <div className="text-6xl md:text-7xl font-bold text-white bg-red-600/20 px-6 py-3 rounded-2xl border border-red-400/30">
+                        {scores.right}
+                    </div>
                 </div>
             </div>
 
@@ -555,6 +571,6 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
             </div>
         </div>
     );
-};
+}; // Ensuring this final brace for the component is present.
 
 export default PaddleBallGame;
