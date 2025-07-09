@@ -165,6 +165,7 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
             ball.x = rightPaddle.x - ball.radius;
         }
 
+
         // Scoring logic
         if (!gameStateRef.current.ballOutOfPlay) {
             // Check if ball is not already marked as out of play
@@ -189,7 +190,9 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
                             clearTimeout(gameStateRef.current.ballResetTimer);
                         }
                         gameStateRef.current.ballResetTimer = setTimeout(() => resetBall(canvas), 1000);
+
                     }
+
 
                     return newScores;
                 });
@@ -214,6 +217,7 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
                             clearTimeout(gameStateRef.current.ballResetTimer);
                         }
                         gameStateRef.current.ballResetTimer = setTimeout(() => resetBall(canvas), 1000);
+
                     }
 
                     return newScores;
@@ -484,10 +488,12 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
     }, []);
 
     return (
+
         <div
             className="h-full w-full flex flex-col relative overflow-hidden bg-cover bg-center"
             style={{ backgroundImage: "url('/assets/game-background.png')" }}
         >
+
             {/* Fallback background color if image fails to load or for transparency in image */}
             <div className="absolute inset-0 bg-slate-900 opacity-75 -z-10"></div>
 

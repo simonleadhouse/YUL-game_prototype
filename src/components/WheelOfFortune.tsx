@@ -5,6 +5,7 @@ interface WheelOfFortuneProps {
 }
 
 const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [currentRotation, setCurrentRotation] = useState(0);
@@ -228,10 +229,12 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
+
     return () => {
       window.removeEventListener('resize', resizeCanvas);
       // Only cancel animation frame on component unmount, not on re-renders
     };
+
   }, []); // Removed currentRotation from dependencies
 
   // Separate useEffect for handling component unmount cleanup
@@ -291,10 +294,12 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
             <div className="text-2xl font-bold text-white mb-1">Congratulations! You've Won:</div>
             <div className="text-xl font-semibold text-slate-800 bg-white/80 px-4 py-2 rounded-md mb-2">
               Code: <span className="font-bold text-2xl">{winningPrize?.split(" - ")[0]?.replace("Code: ", "")}</span>
+
             </div>
             <div className="text-2xl font-bold text-white mb-6">
               {winningPrize?.split(" - ")[1]}
             </div>
+
             <div className="space-y-4">
               <button
                 onClick={handleNewSpin}
@@ -337,11 +342,13 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
 
       {/* Instructions */}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
+
         <div className="bg-black/40 backdrop-blur-sm px-6 py-3 rounded-lg border border-white/20">
           <div className="text-white text-lg font-semibold">
             {isSpinning ? 'The wheel is spinning!' : 'Click the SPIN button to try your luck!'}
           </div>
           <div className="text-slate-300 text-sm">8 amazing prizes waiting for you</div>
+
         </div>
       </div>
     </div>
