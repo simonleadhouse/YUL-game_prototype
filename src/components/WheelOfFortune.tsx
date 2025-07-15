@@ -347,7 +347,7 @@ const WheelOfFortune = ({ onBackToSelection }: WheelOfFortuneProps) => {
           <div className="text-white text-lg font-semibold">
             {isSpinning ? 'The wheel is spinning!' : 'Click the SPIN button to try your luck!'}
           </div>
-          <div className="text-slate-300 text-sm">8 amazing prizes waiting for you</div>
+          <div className="text-slate-300 text-sm">{t('8 amazing prizes waiting for you')}</div>
 
         </div>
       </div>

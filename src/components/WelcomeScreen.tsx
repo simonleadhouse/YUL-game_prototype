@@ -80,7 +80,7 @@ const WelcomeScreen = ({ onTapToPlay }: WelcomeScreenProps) => {
       </div>
       
       <div className="absolute bottom-8 right-8 text-blue-400/50 text-lg font-light">
-        Interactive Entertainment Hub
+        {t('Interactive Entertainment Hub')}
       </div>
     </div>
   );

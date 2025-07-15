@@ -566,7 +566,7 @@ const PaddleBallGame = ({ onBackToSelection, onTransitionToWheelOfFortune }: Pad
                     className="bg-green-600 hover:bg-green-500 text-white px-12 py-4 rounded-xl text-2xl font-bold transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={showWinnerMessage}
                 >
-                    {gameStateRef.current.isPlaying ? "STOP GAME" : "START GAME"}
+                    {t(gameStateRef.current.isPlaying ? 'STOP GAME' : 'START GAME')}
                 </button>
             </div>
         </div>

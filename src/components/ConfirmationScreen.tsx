@@ -90,7 +90,7 @@ const ConfirmationScreen = ({ onConfirm, onCancel }: ConfirmationScreenProps) =>
 
       {/* Back Navigation Hint */}
       <div className="absolute bottom-8 left-8 text-blue-400/50 text-lg font-light">
-        Step 1 of 3 - Confirmation
+        Step 1 of 3 - {t('Confirmation')}
       </div>
     </div>
   );
